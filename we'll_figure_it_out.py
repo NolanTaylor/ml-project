@@ -23,17 +23,21 @@ encoded_Y = encoder.transform(Y)
 # convert integers to dummy variables (i.e. one hot encoded)
 dummy_y = np_utils.to_categorical(encoded_Y)
 
-# define baseline model
-def baseline_model():
-	# create model
-	model = Sequential()
-	model.add(Dense(8, input_dim=4, activation='relu'))
-	model.add(Dense(3, activation='softmax'))
-	# Compile model
-	model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-	return model
 
-estimator = KerasClassifier(build_fn=baseline_model, epochs=200, batch_size=5, verbose=0)
+def create_model():
+    model = Sequential()
+    model.add(Dense(8, input_dim=4, activation='relu'))
+    model.add(Dense(3, activation='softmax'))
+    # Compile model
+    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+    return model
+
+my_model = create_model()
+
+estimator = KerasClassifier(build_fn=create_model, epochs=200, batch_size=5, verbose=1)
 kfold = KFold(n_splits=10, shuffle=True)
 results = cross_val_score(estimator, X, dummy_y, cv=kfold)
 print("Baseline: %.2f%% (%.2f%%)" % (results.mean()*100, results.std()*100))
+
+my_model.save("C:\PythonPrograms\mlproject\model.h5")
+print("Saved model to disk")
