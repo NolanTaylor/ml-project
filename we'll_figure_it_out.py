@@ -1,43 +1,56 @@
-# multi-class classification with Keras
+# Train model and make predictions
+import numpy
 import pandas
-from keras.models import Sequential
+from keras.models import Sequential, model_from_json
 from keras.layers import Dense
-from keras.wrappers.scikit_learn import KerasClassifier
 from keras.utils import np_utils
-from sklearn.model_selection import cross_val_score
-from sklearn.model_selection import KFold
+from sklearn import datasets
+from sklearn import preprocessing
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
-from sklearn.pipeline import Pipeline
 
-print("yee haw")
+# fix random seed for reproducibility
+seed = 7
+numpy.random.seed(seed)
 
 # load dataset
-dataframe = pandas.read_csv("C:\PythonPrograms\mlproject\iris.data", header=None)
-dataset = dataframe.values
-X = dataset[:,0:4].astype(float)
-Y = dataset[:,4]
+iris = datasets.load_iris()
+X, Y, labels = iris.data, iris.target, iris.target_names
+X = preprocessing.scale(X)
+
 # encode class values as integers
 encoder = LabelEncoder()
 encoder.fit(Y)
 encoded_Y = encoder.transform(Y)
+
 # convert integers to dummy variables (i.e. one hot encoded)
-dummy_y = np_utils.to_categorical(encoded_Y)
+y = np_utils.to_categorical(encoded_Y)
 
+flowers = pandas.read_csv("C:\PythonPrograms\mlproject\iris.data", header=None)
+values = flowers.values
+X = values[:,0:4]
 
-def create_model():
+def build_model():
+    # create model
     model = Sequential()
-    model.add(Dense(8, input_dim=4, activation='relu'))
-    model.add(Dense(3, activation='softmax'))
-    # Compile model
+    model.add(Dense(4, input_dim=4, init='normal', activation='relu'))
+    model.add(Dense(3, init='normal', activation='sigmoid'))
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
     return model
 
-my_model = create_model()
+def save_model(model):
+    # saving model
+    json_model = model.to_json()
+    open('C:\PythonPrograms\mlproject\model_architecture.json', 'w').write(json_model)
+    # saving weights
+    model.save_weights('C:\PythonPrograms\mlproject\model_weights.h5', overwrite=True)
 
-estimator = KerasClassifier(build_fn=create_model, epochs=200, batch_size=5, verbose=1)
-kfold = KFold(n_splits=10, shuffle=True)
-results = cross_val_score(estimator, X, dummy_y, cv=kfold)
-print("Baseline: %.2f%% (%.2f%%)" % (results.mean()*100, results.std()*100))
 
-my_model.save("C:\PythonPrograms\mlproject\model.h5")
-print("Saved model to disk")
+X_train, X_test, Y_train, Y_test = train_test_split(X, y, test_size=0.3, random_state=seed)
+
+# build
+model = build_model()
+model.fit(X_train, Y_train, nb_epoch=200, batch_size=5, verbose=0)
+
+# save
+save_model(model)
